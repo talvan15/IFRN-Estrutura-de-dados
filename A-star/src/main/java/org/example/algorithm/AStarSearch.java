@@ -24,6 +24,9 @@ public class AStarSearch implements SearchAlgorithm {
 
         Map<Position, Node> nodes = new HashMap<>();
 
+        Map<Position, Double> gValues = new HashMap<>();
+        Map<Position, Double> hValues = new HashMap<>();
+
         PriorityQueue<Node> openQueue =
                 new PriorityQueue<>(
                         Comparator
@@ -41,6 +44,9 @@ public class AStarSearch implements SearchAlgorithm {
 
         nodes.put(start, startNode);
 
+        gValues.put(start, startNode.getG());
+        hValues.put(start, startNode.getH());
+
         openQueue.add(startNode);
         openPositions.add(start);
 
@@ -57,13 +63,18 @@ public class AStarSearch implements SearchAlgorithm {
             openPositions.remove(current.getPosition());
 
             if (current.getPosition().equals(goal)) {
+
                 goalNode = current;
 
-                steps.add(new SearchStep(
-                        openPositions,
-                        closed,
-                        current.getPosition()
-                ));
+                steps.add(
+                        createStep(
+                                openPositions,
+                                closed,
+                                current.getPosition(),
+                                gValues,
+                                hValues
+                        )
+                );
 
                 break;
             }
@@ -77,37 +88,59 @@ public class AStarSearch implements SearchAlgorithm {
                     continue;
                 }
 
-                double tentativeG = current.getG() + 1;
+                double tentativeG =
+                        current.getG() + 1;
 
-                Node neighbor = nodes.computeIfAbsent(
-                        neighborPosition,
-                        Node::new
-                );
+                Node neighbor =
+                        nodes.computeIfAbsent(
+                                neighborPosition,
+                                Node::new
+                        );
 
                 if (tentativeG < neighbor.getG()) {
 
                     neighbor.setParent(current);
                     neighbor.setG(tentativeG);
                     neighbor.setH(
-                            heuristic(neighborPosition, goal)
+                            heuristic(
+                                    neighborPosition,
+                                    goal
+                            )
+                    );
+
+                    gValues.put(
+                            neighborPosition,
+                            neighbor.getG()
+                    );
+
+                    hValues.put(
+                            neighborPosition,
+                            neighbor.getH()
                     );
 
                     /*
-                     * PriorityQueue não reorganiza automaticamente
-                     * um objeto quando sua prioridade muda.
+                     * PriorityQueue não reorganiza
+                     * automaticamente um elemento cuja
+                     * prioridade interna foi modificada.
                      */
                     openQueue.remove(neighbor);
                     openQueue.add(neighbor);
 
-                    openPositions.add(neighborPosition);
+                    openPositions.add(
+                            neighborPosition
+                    );
                 }
             }
 
-            steps.add(new SearchStep(
-                    openPositions,
-                    closed,
-                    current.getPosition()
-            ));
+            steps.add(
+                    createStep(
+                            openPositions,
+                            closed,
+                            current.getPosition(),
+                            gValues,
+                            hValues
+                    )
+            );
         }
 
         List<Position> path =
@@ -123,27 +156,61 @@ public class AStarSearch implements SearchAlgorithm {
                 path,
                 steps,
                 closed.size(),
-                goalNode == null ? 0 : goalNode.getG(),
-                (endTime - startTime) / 1_000_000.0
+                goalNode == null
+                        ? 0
+                        : goalNode.getG(),
+                (endTime - startTime)
+                        / 1_000_000.0
         );
     }
 
-    private double heuristic(Position a, Position b) {
+    private SearchStep createStep(
+            Set<Position> open,
+            Set<Position> closed,
+            Position current,
+            Map<Position, Double> gValues,
+            Map<Position, Double> hValues
+    ) {
 
-        return Math.abs(a.getRow() - b.getRow())
-                + Math.abs(
-                a.getColumn() - b.getColumn()
+        return new SearchStep(
+                open,
+                closed,
+                current,
+                gValues,
+                hValues
         );
     }
 
-    private List<Position> reconstructPath(Node goal) {
+    private double heuristic(
+            Position a,
+            Position b
+    ) {
 
-        List<Position> path = new ArrayList<>();
+        return Math.abs(
+                a.getRow() - b.getRow()
+        )
+                +
+                Math.abs(
+                        a.getColumn()
+                                - b.getColumn()
+                );
+    }
+
+    private List<Position> reconstructPath(
+            Node goal
+    ) {
+
+        List<Position> path =
+                new ArrayList<>();
 
         Node current = goal;
 
         while (current != null) {
-            path.add(current.getPosition());
+
+            path.add(
+                    current.getPosition()
+            );
+
             current = current.getParent();
         }
 
@@ -166,7 +233,8 @@ public class AStarSearch implements SearchAlgorithm {
                 steps,
                 0,
                 0,
-                (endTime - startTime) / 1_000_000.0
+                (endTime - startTime)
+                        / 1_000_000.0
         );
     }
 

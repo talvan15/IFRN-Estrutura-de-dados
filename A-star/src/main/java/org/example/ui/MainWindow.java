@@ -1,39 +1,412 @@
 package org.example.ui;
 
-import org.example.algorithm.*;
+import org.example.algorithm.AStarSearch;
+import org.example.algorithm.GreedySearch;
+import org.example.algorithm.SearchAlgorithm;
+import org.example.algorithm.SearchResult;
+import org.example.algorithm.SearchStep;
 import org.example.model.Grid;
+import org.example.model.Position;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 
 public class MainWindow extends JFrame {
 
+    /*
+     * =========================================================
+     * CORES
+     * =========================================================
+     */
+
+    private static final Color BACKGROUND =
+            new Color(11, 18, 32);
+
+    private static final Color PANEL =
+            new Color(17, 24, 39);
+
+    private static final Color CARD =
+            new Color(31, 41, 55);
+
+    private static final Color BORDER =
+            new Color(55, 65, 81);
+
+    private static final Color TEXT =
+            new Color(243, 244, 246);
+
+    private static final Color MUTED =
+            new Color(156, 163, 175);
+
+    private static final Color ACCENT =
+            new Color(59, 130, 246);
+
+    /*
+     * =========================================================
+     * MODELO
+     * =========================================================
+     */
+
     private final Grid grid;
+
     private final GridPanel gridPanel;
 
-    private final JComboBox<String> algorithmCombo;
+    /*
+     * =========================================================
+     * CONTROLES
+     * =========================================================
+     */
 
-    private final JLabel statusLabel;
-    private final JLabel nodesLabel;
-    private final JLabel costLabel;
-    private final JLabel timeLabel;
+    private JComboBox<String> algorithmCombo;
 
-    private final JSlider speedSlider;
+    private JLabel statusLabel;
+    private JLabel nodesLabel;
+    private JLabel costLabel;
+    private JLabel timeLabel;
+
+    /*
+     * Comparação A*.
+     */
+    private JLabel aStarNodesLabel;
+    private JLabel aStarCostLabel;
+    private JLabel aStarTimeLabel;
+
+    /*
+     * Comparação Greedy.
+     */
+    private JLabel greedyNodesLabel;
+    private JLabel greedyCostLabel;
+    private JLabel greedyTimeLabel;
+
+    /*
+     * Sliders.
+     */
+    private JSlider speedSlider;
+    private JSlider densitySlider;
+
+    private JLabel densityValueLabel;
+
+    /*
+     * Botões do editor.
+     */
+    private JButton wallButton;
+    private JButton eraseButton;
+    private JButton startButton;
+    private JButton goalButton;
+
+    /*
+     * =========================================================
+     * EXECUÇÃO
+     * =========================================================
+     */
 
     private Timer animationTimer;
 
     private SearchResult lastAStarResult;
     private SearchResult lastGreedyResult;
 
+    /*
+     * =========================================================
+     * CONSTRUTOR
+     * =========================================================
+     */
+
     public MainWindow() {
 
-        super("Predator Pathfinding - A* vs Greedy");
+        super(
+                "Pathfinding Lab - A* vs Greedy"
+        );
 
-        grid = new Grid(20, 25);
+        grid =
+                new Grid(
+                        20,
+                        25
+                );
+
         grid.createDefaultMap();
 
-        gridPanel = new GridPanel(grid);
+        gridPanel =
+                new GridPanel(grid);
+
+        configureWindow();
+    }
+
+    /*
+     * =========================================================
+     * JANELA PRINCIPAL
+     * =========================================================
+     */
+
+    private void configureWindow() {
+
+        setDefaultCloseOperation(
+                JFrame.EXIT_ON_CLOSE
+        );
+
+        getContentPane()
+                .setBackground(BACKGROUND);
+
+        setLayout(
+                new BorderLayout(
+                        16,
+                        16
+                )
+        );
+
+        /*
+         * Cabeçalho.
+         */
+        JPanel header =
+                createHeader();
+
+        /*
+         * Área central contendo o mapa.
+         */
+        JPanel center =
+                createGridContainer();
+
+        /*
+         * Painel lateral.
+         */
+        JScrollPane controlScrollPane =
+                createControlScrollPane();
+
+        add(
+                header,
+                BorderLayout.NORTH
+        );
+
+        add(
+                center,
+                BorderLayout.CENTER
+        );
+
+        add(
+                controlScrollPane,
+                BorderLayout.EAST
+        );
+
+        ((JComponent) getContentPane())
+                .setBorder(
+                        new EmptyBorder(
+                                16,
+                                16,
+                                16,
+                                16
+                        )
+                );
+
+        setSize(
+                1250,
+                820
+        );
+
+        setMinimumSize(
+                new Dimension(
+                        1000,
+                        650
+                )
+        );
+
+        setLocationRelativeTo(null);
+    }
+
+    /*
+     * =========================================================
+     * CABEÇALHO
+     * =========================================================
+     */
+
+    private JPanel createHeader() {
+
+        JPanel panel =
+                new JPanel(
+                        new BorderLayout()
+                );
+
+        panel.setOpaque(false);
+
+        JLabel title =
+                new JLabel(
+                        "PATHFINDING LAB"
+                );
+
+        title.setForeground(TEXT);
+
+        title.setFont(
+                title.getFont()
+                        .deriveFont(
+                                Font.BOLD,
+                                24f
+                        )
+        );
+
+        JLabel subtitle =
+                new JLabel(
+                        "Visualização de A* e Greedy Best-First Search"
+                );
+
+        subtitle.setForeground(MUTED);
+
+        panel.add(
+                title,
+                BorderLayout.WEST
+        );
+
+        panel.add(
+                subtitle,
+                BorderLayout.EAST
+        );
+
+        return panel;
+    }
+
+    private JScrollPane createControlScrollPane() {
+
+        JPanel controlPanel =
+                createControlPanel();
+
+        JScrollPane scrollPane =
+                new JScrollPane(controlPanel);
+
+        /*
+         * Largura total do painel lateral.
+         *
+         * Incluímos espaço suficiente para a scrollbar.
+         */
+        scrollPane.setPreferredSize(
+                new Dimension(
+                        360,
+                        700
+                )
+        );
+
+        scrollPane.setMinimumSize(
+                new Dimension(
+                        340,
+                        400
+                )
+        );
+
+        scrollPane.setBorder(null);
+
+        scrollPane.setBackground(PANEL);
+
+        scrollPane
+                .getViewport()
+                .setBackground(PANEL);
+
+        scrollPane.setVerticalScrollBarPolicy(
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
+        );
+
+        /*
+         * Não deve existir rolagem horizontal.
+         */
+        scrollPane.setHorizontalScrollBarPolicy(
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+        );
+
+        scrollPane
+                .getVerticalScrollBar()
+                .setUnitIncrement(16);
+
+        return scrollPane;
+    }
+
+    /*
+     * =========================================================
+     * CONTAINER DO GRID
+     * =========================================================
+     */
+
+    private JPanel createGridContainer() {
+
+        JPanel center =
+                new JPanel(
+                        new BorderLayout()
+                );
+
+        center.setBackground(PANEL);
+
+        center.setBorder(
+                BorderFactory
+                        .createCompoundBorder(
+
+                                new LineBorder(
+                                        BORDER,
+                                        1,
+                                        true
+                                ),
+
+                                new EmptyBorder(
+                                        12,
+                                        12,
+                                        12,
+                                        12
+                                )
+                        )
+        );
+
+        center.add(
+                gridPanel,
+                BorderLayout.CENTER
+        );
+
+        center.add(
+                createLegend(),
+                BorderLayout.SOUTH
+        );
+
+        return center;
+    }
+
+    /*
+     * =========================================================
+     * SCROLL DO PAINEL LATERAL
+     * =========================================================
+     */
+
+    /*
+     * =========================================================
+     * PAINEL DE CONTROLES
+     * =========================================================
+     */
+
+    private JPanel createControlPanel() {
+
+        ScrollablePanel container =
+                new ScrollablePanel();
+
+        container.setBackground(PANEL);
+
+        container.setBorder(
+                new EmptyBorder(
+                        18,
+                        18,
+                        18,
+                        18
+                )
+        );
+
+        container.setLayout(
+                new BoxLayout(
+                        container,
+                        BoxLayout.Y_AXIS
+                )
+        );
+
+        /*
+         * =====================================================
+         * EXECUÇÃO
+         * =====================================================
+         */
+
+        addSectionTitle(
+                container,
+                "EXECUÇÃO"
+        );
 
         algorithmCombo =
                 new JComboBox<>(
@@ -43,231 +416,892 @@ public class MainWindow extends JFrame {
                         }
                 );
 
-        statusLabel = new JLabel("Pronto");
-        nodesLabel = new JLabel("Nós explorados: -");
-        costLabel = new JLabel("Custo: -");
-        timeLabel = new JLabel("Tempo: -");
-
-        speedSlider = new JSlider(20, 500, 120);
-
-        configureWindow();
-    }
-
-    private void configureWindow() {
-
-        setDefaultCloseOperation(
-                JFrame.EXIT_ON_CLOSE
+        styleComboBox(
+                algorithmCombo
         );
 
-        setLayout(new BorderLayout());
-
-        add(gridPanel, BorderLayout.CENTER);
-        add(createControlPanel(), BorderLayout.EAST);
-
-        pack();
-
-        setMinimumSize(new Dimension(1050, 700));
-        setLocationRelativeTo(null);
-    }
-
-    private JPanel createControlPanel() {
-
-        JPanel panel = new JPanel();
-
-        panel.setPreferredSize(new Dimension(280, 650));
-        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
-
-        panel.setLayout(
-                new BoxLayout(panel, BoxLayout.Y_AXIS)
+        container.add(
+                algorithmCombo
         );
 
-        JLabel title =
-                new JLabel("PATHFINDING LAB");
-
-        title.setFont(
-                title.getFont().deriveFont(
-                        Font.BOLD,
-                        20f
-                )
+        container.add(
+                verticalSpace(10)
         );
-
-        panel.add(title);
-        panel.add(Box.createVerticalStrut(20));
-
-        panel.add(new JLabel("Algoritmo"));
-        panel.add(algorithmCombo);
-
-        panel.add(Box.createVerticalStrut(20));
 
         JButton runButton =
-                new JButton("▶ Executar");
+                createPrimaryButton(
+                        "▶  Executar"
+                );
 
         runButton.addActionListener(
                 e -> executeSearch()
         );
 
-        panel.add(runButton);
+        container.add(
+                runButton
+        );
 
-        panel.add(Box.createVerticalStrut(10));
+        container.add(
+                verticalSpace(14)
+        );
 
-        JButton resetButton =
-                new JButton("↻ Mapa padrão");
+        addSmallLabel(
+                container,
+                "Velocidade da animação"
+        );
 
-        resetButton.addActionListener(e -> {
+        speedSlider =
+                new JSlider(
+                        20,
+                        500,
+                        120
+                );
 
-            stopAnimation();
+        configureSlider(
+                speedSlider
+        );
 
-            grid.createDefaultMap();
-            gridPanel.clearSearchVisualization();
+        /*
+         * Tooltip explicativo.
+         *
+         * Valores menores = animação mais rápida,
+         * pois representam o atraso do Timer.
+         */
+        speedSlider.setToolTipText(
+                "Menor valor = animação mais rápida"
+        );
 
-            resetMetrics();
-        });
+        container.add(
+                speedSlider
+        );
 
-        panel.add(resetButton);
+        container.add(
+                verticalSpace(22)
+        );
 
-        panel.add(Box.createVerticalStrut(10));
+        /*
+         * =====================================================
+         * EDITOR
+         * =====================================================
+         */
 
-        JButton clearButton =
-                new JButton("Limpar mapa");
+        addSectionTitle(
+                container,
+                "EDITOR"
+        );
 
-        clearButton.addActionListener(e -> {
+        JPanel editorGrid =
+                new JPanel(
+                        new GridLayout(
+                                2,
+                                2,
+                                8,
+                                8
+                        )
+                );
 
-            stopAnimation();
+        editorGrid.setOpaque(false);
 
-            grid.clear();
-            gridPanel.clearSearchVisualization();
+        editorGrid.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        86
+                )
+        );
 
-            resetMetrics();
-        });
+        wallButton =
+                createSecondaryButton(
+                        "Parede"
+                );
 
-        panel.add(clearButton);
+        eraseButton =
+                createSecondaryButton(
+                        "Borracha"
+                );
 
-        panel.add(Box.createVerticalStrut(25));
+        startButton =
+                createSecondaryButton(
+                        "Origem A"
+                );
 
-        panel.add(new JLabel("Editor"));
+        goalButton =
+                createSecondaryButton(
+                        "Destino B"
+                );
 
-        JButton wallButton =
-                new JButton("🧱 Obstáculo");
+        wallButton.setToolTipText(
+                "Clique e arraste para desenhar paredes"
+        );
 
-        JButton startButton =
-                new JButton("A - Origem");
+        eraseButton.setToolTipText(
+                "Clique e arraste para apagar paredes"
+        );
 
-        JButton goalButton =
-                new JButton("B - Destino");
+        startButton.setToolTipText(
+                "Selecione e clique no mapa para posicionar A"
+        );
 
-        JButton eraseButton =
-                new JButton("Borracha");
+        goalButton.setToolTipText(
+                "Selecione e clique no mapa para posicionar B"
+        );
 
         wallButton.addActionListener(
-                e -> gridPanel.setEditMode(
-                        GridPanel.EditMode.WALL
-                )
-        );
-
-        startButton.addActionListener(
-                e -> gridPanel.setEditMode(
-                        GridPanel.EditMode.START
-                )
-        );
-
-        goalButton.addActionListener(
-                e -> gridPanel.setEditMode(
-                        GridPanel.EditMode.GOAL
+                e -> selectEditMode(
+                        GridPanel
+                                .EditMode
+                                .WALL
                 )
         );
 
         eraseButton.addActionListener(
-                e -> gridPanel.setEditMode(
-                        GridPanel.EditMode.ERASE
+                e -> selectEditMode(
+                        GridPanel
+                                .EditMode
+                                .ERASE
                 )
         );
 
-        panel.add(wallButton);
-        panel.add(startButton);
-        panel.add(goalButton);
-        panel.add(eraseButton);
-
-        panel.add(Box.createVerticalStrut(25));
-
-        panel.add(new JLabel("Velocidade da animação"));
-        panel.add(speedSlider);
-
-        panel.add(Box.createVerticalStrut(25));
-
-        JLabel metricsTitle =
-                new JLabel("Métricas");
-
-        metricsTitle.setFont(
-                metricsTitle.getFont()
-                        .deriveFont(Font.BOLD)
+        startButton.addActionListener(
+                e -> selectEditMode(
+                        GridPanel
+                                .EditMode
+                                .START
+                )
         );
 
-        panel.add(metricsTitle);
-        panel.add(Box.createVerticalStrut(8));
+        goalButton.addActionListener(
+                e -> selectEditMode(
+                        GridPanel
+                                .EditMode
+                                .GOAL
+                )
+        );
+
+        editorGrid.add(wallButton);
+        editorGrid.add(eraseButton);
+        editorGrid.add(startButton);
+        editorGrid.add(goalButton);
+
+        container.add(
+                editorGrid
+        );
+
+        /*
+         * Ferramenta inicial.
+         */
+        selectEditMode(
+                GridPanel.EditMode.WALL
+        );
+
+        container.add(
+                verticalSpace(22)
+        );
+
+        /*
+         * =====================================================
+         * MAPA
+         * =====================================================
+         */
+
+        addSectionTitle(
+                container,
+                "MAPA"
+        );
+
+        JButton defaultButton =
+                createSecondaryButton(
+                        "Restaurar mapa padrão"
+                );
+
+        defaultButton.addActionListener(
+                e -> {
+
+                    stopAnimation();
+
+                    grid.createDefaultMap();
+
+                    gridPanel
+                            .clearSearchVisualization();
+
+                    resetMetrics();
+                }
+        );
+
+        container.add(
+                defaultButton
+        );
+
+        container.add(
+                verticalSpace(8)
+        );
+
+        JButton clearButton =
+                createSecondaryButton(
+                        "Limpar mapa"
+                );
+
+        clearButton.addActionListener(
+                e -> {
+
+                    stopAnimation();
+
+                    grid.clear();
+
+                    gridPanel
+                            .clearSearchVisualization();
+
+                    resetMetrics();
+                }
+        );
+
+        container.add(
+                clearButton
+        );
+
+        container.add(
+                verticalSpace(14)
+        );
+
+        addSmallLabel(
+                container,
+                "Densidade dos obstáculos"
+        );
+
+        JPanel densityPanel =
+                new JPanel(
+                        new BorderLayout(
+                                8,
+                                0
+                        )
+                );
+
+        densityPanel.setOpaque(false);
+
+        densityPanel.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        45
+                )
+        );
+
+        densitySlider =
+                new JSlider(
+                        5,
+                        50,
+                        25
+                );
+
+        configureSlider(
+                densitySlider
+        );
+
+        densityValueLabel =
+                new JLabel("25%");
+
+        densityValueLabel
+                .setForeground(TEXT);
+
+        densityValueLabel
+                .setPreferredSize(
+                        new Dimension(
+                                40,
+                                30
+                        )
+                );
+
+        densitySlider
+                .addChangeListener(
+                        e -> densityValueLabel
+                                .setText(
+                                        densitySlider
+                                                .getValue()
+                                                + "%"
+                                )
+                );
+
+        densityPanel.add(
+                densitySlider,
+                BorderLayout.CENTER
+        );
+
+        densityPanel.add(
+                densityValueLabel,
+                BorderLayout.EAST
+        );
+
+        container.add(
+                densityPanel
+        );
+
+        container.add(
+                verticalSpace(8)
+        );
+
+        JButton randomButton =
+                createSecondaryButton(
+                        "Gerar obstáculos"
+                );
+
+        randomButton.addActionListener(
+                e -> generateRandomMap()
+        );
+
+        container.add(
+                randomButton
+        );
+
+        container.add(
+                verticalSpace(22)
+        );
+
+        /*
+         * =====================================================
+         * RESULTADO
+         * =====================================================
+         */
+
+        addSectionTitle(
+                container,
+                "RESULTADO ATUAL"
+        );
+
+        JPanel currentResult =
+                createCurrentResultCard();
+
+        container.add(
+                currentResult
+        );
+
+        container.add(
+                verticalSpace(18)
+        );
+
+        /*
+         * =====================================================
+         * COMPARAÇÃO
+         * =====================================================
+         */
+
+        JButton compareButton =
+                createPrimaryButton(
+                        "Comparar A* × Greedy"
+                );
+
+        compareButton.addActionListener(
+                e -> compareAlgorithms()
+        );
+
+        container.add(
+                compareButton
+        );
+
+        container.add(
+                verticalSpace(12)
+        );
+
+        JPanel comparison =
+                createComparisonCard();
+
+        container.add(
+                comparison
+        );
+
+        /*
+         * Pequeno espaço no final para evitar
+         * que o último card fique colado na borda.
+         */
+        container.add(
+                verticalSpace(10)
+        );
+
+        return container;
+    }
+
+    /*
+     * =========================================================
+     * RESULTADO ATUAL
+     * =========================================================
+     */
+
+    private JPanel createCurrentResultCard() {
+
+        JPanel panel =
+                createCardPanel();
+
+        panel.setLayout(
+                new GridLayout(
+                        4,
+                        1,
+                        0,
+                        6
+                )
+        );
+
+        panel.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        120
+                )
+        );
+
+        statusLabel =
+                createMetricLabel(
+                        "Pronto"
+                );
+
+        nodesLabel =
+                createMetricLabel(
+                        "Nós explorados: —"
+                );
+
+        costLabel =
+                createMetricLabel(
+                        "Custo: —"
+                );
+
+        timeLabel =
+                createMetricLabel(
+                        "Tempo: —"
+                );
 
         panel.add(statusLabel);
         panel.add(nodesLabel);
         panel.add(costLabel);
         panel.add(timeLabel);
 
-        panel.add(Box.createVerticalStrut(20));
+        return panel;
+    }
 
-        JButton comparisonButton =
-                new JButton("Comparar algoritmos");
+    /*
+     * =========================================================
+     * CARD DE COMPARAÇÃO
+     * =========================================================
+     */
 
-        comparisonButton.addActionListener(
-                e -> showComparison()
+    private JPanel createComparisonCard() {
+
+        JPanel panel =
+                createCardPanel();
+
+        panel.setLayout(
+                new GridLayout(
+                        4,
+                        3,
+                        8,
+                        7
+                )
         );
 
-        panel.add(comparisonButton);
+        panel.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        130
+                )
+        );
+
+        /*
+         * Cabeçalho.
+         */
+        panel.add(
+                createMutedLabel("")
+        );
+
+        panel.add(
+                createBoldLabel("A*")
+        );
+
+        panel.add(
+                createBoldLabel("Greedy")
+        );
+
+        /*
+         * Nós.
+         */
+        panel.add(
+                createMutedLabel("Nós")
+        );
+
+        aStarNodesLabel =
+                createMetricLabel("—");
+
+        greedyNodesLabel =
+                createMetricLabel("—");
+
+        panel.add(
+                aStarNodesLabel
+        );
+
+        panel.add(
+                greedyNodesLabel
+        );
+
+        /*
+         * Custo.
+         */
+        panel.add(
+                createMutedLabel("Custo")
+        );
+
+        aStarCostLabel =
+                createMetricLabel("—");
+
+        greedyCostLabel =
+                createMetricLabel("—");
+
+        panel.add(
+                aStarCostLabel
+        );
+
+        panel.add(
+                greedyCostLabel
+        );
+
+        /*
+         * Tempo.
+         */
+        panel.add(
+                createMutedLabel("Tempo")
+        );
+
+        aStarTimeLabel =
+                createMetricLabel("—");
+
+        greedyTimeLabel =
+                createMetricLabel("—");
+
+        panel.add(
+                aStarTimeLabel
+        );
+
+        panel.add(
+                greedyTimeLabel
+        );
 
         return panel;
     }
+
+    /*
+     * =========================================================
+     * LEGENDA
+     * =========================================================
+     */
+
+    private JPanel createLegend() {
+
+        JPanel panel =
+                new JPanel(
+                        new FlowLayout(
+                                FlowLayout.CENTER,
+                                18,
+                                8
+                        )
+                );
+
+        panel.setOpaque(false);
+
+        panel.add(
+                createLegendItem(
+                        new Color(
+                                250,
+                                204,
+                                21
+                        ),
+                        "OPEN"
+                )
+        );
+
+        panel.add(
+                createLegendItem(
+                        new Color(
+                                249,
+                                115,
+                                22
+                        ),
+                        "CLOSED"
+                )
+        );
+
+        panel.add(
+                createLegendItem(
+                        new Color(
+                                168,
+                                85,
+                                247
+                        ),
+                        "Atual"
+                )
+        );
+
+        panel.add(
+                createLegendItem(
+                        new Color(
+                                59,
+                                130,
+                                246
+                        ),
+                        "Caminho"
+                )
+        );
+
+        panel.add(
+                createLegendItem(
+                        new Color(
+                                16,
+                                185,
+                                129
+                        ),
+                        "Origem"
+                )
+        );
+
+        panel.add(
+                createLegendItem(
+                        new Color(
+                                239,
+                                68,
+                                68
+                        ),
+                        "Destino"
+                )
+        );
+
+        return panel;
+    }
+
+    private JPanel createLegendItem(
+            Color color,
+            String text
+    ) {
+
+        JPanel item =
+                new JPanel(
+                        new FlowLayout(
+                                FlowLayout.LEFT,
+                                5,
+                                0
+                        )
+                );
+
+        item.setOpaque(false);
+
+        JLabel square =
+                new JLabel("■");
+
+        square.setForeground(color);
+
+        JLabel label =
+                new JLabel(text);
+
+        label.setForeground(MUTED);
+
+        item.add(square);
+        item.add(label);
+
+        return item;
+    }
+
+    /*
+     * =========================================================
+     * EDITOR
+     * =========================================================
+     */
+
+    private void selectEditMode(
+            GridPanel.EditMode mode
+    ) {
+
+        gridPanel.setEditMode(mode);
+
+        /*
+         * Esse método pode ser chamado durante
+         * a criação dos próprios botões.
+         */
+        if (wallButton == null
+                || eraseButton == null
+                || startButton == null
+                || goalButton == null) {
+
+            return;
+        }
+
+        JButton[] buttons = {
+                wallButton,
+                eraseButton,
+                startButton,
+                goalButton
+        };
+
+        /*
+         * Estado normal.
+         */
+        for (JButton button :
+                buttons) {
+
+            button.setBackground(CARD);
+            button.setForeground(TEXT);
+        }
+
+        /*
+         * Descobrimos qual botão representa
+         * a ferramenta atual.
+         */
+        JButton selected =
+                switch (mode) {
+
+                    case WALL ->
+                            wallButton;
+
+                    case ERASE ->
+                            eraseButton;
+
+                    case START ->
+                            startButton;
+
+                    case GOAL ->
+                            goalButton;
+                };
+
+        /*
+         * Estado selecionado.
+         */
+        selected.setBackground(
+                ACCENT
+        );
+
+        selected.setForeground(
+                Color.WHITE
+        );
+
+        repaint();
+    }
+
+    /*
+     * =========================================================
+     * MAPA ALEATÓRIO
+     * =========================================================
+     */
+
+    private void generateRandomMap() {
+
+        stopAnimation();
+
+        /*
+         * Caso A não exista, criamos uma origem padrão.
+         */
+        if (grid.getStart() == null) {
+
+            grid.setStart(
+                    new Position(
+                            2,
+                            2
+                    )
+            );
+        }
+
+        /*
+         * Caso B não exista, criamos um destino padrão.
+         */
+        if (grid.getGoal() == null) {
+
+            grid.setGoal(
+                    new Position(
+                            grid.getRows() - 3,
+                            grid.getColumns() - 3
+                    )
+            );
+        }
+
+        double density =
+                densitySlider
+                        .getValue()
+                        / 100.0;
+
+        grid.generateRandomWalls(
+                density
+        );
+
+        gridPanel
+                .clearSearchVisualization();
+
+        resetMetrics();
+    }
+
+    /*
+     * =========================================================
+     * EXECUÇÃO DO ALGORITMO
+     * =========================================================
+     */
 
     private void executeSearch() {
 
         stopAnimation();
 
-        if (grid.getStart() == null
-                || grid.getGoal() == null) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Defina os pontos A e B antes de executar.",
-                    "Mapa incompleto",
-                    JOptionPane.WARNING_MESSAGE
-            );
-
+        if (!validateMap()) {
             return;
         }
 
-        gridPanel.clearSearchVisualization();
-        gridPanel.setEditingEnabled(false);
+        gridPanel
+                .clearSearchVisualization();
+
+        gridPanel
+                .setEditingEnabled(false);
 
         SearchAlgorithm algorithm;
 
-        if (algorithmCombo.getSelectedIndex() == 0) {
-            algorithm = new AStarSearch();
+        if (algorithmCombo
+                .getSelectedIndex() == 0) {
+
+            algorithm =
+                    new AStarSearch();
+
         } else {
-            algorithm = new GreedySearch();
+
+            algorithm =
+                    new GreedySearch();
         }
 
         SearchResult result =
                 algorithm.search(grid);
 
-        if (algorithm instanceof AStarSearch) {
-            lastAStarResult = result;
+        /*
+         * Guardamos o resultado para
+         * o painel comparativo.
+         */
+        if (algorithm
+                instanceof AStarSearch) {
+
+            lastAStarResult =
+                    result;
+
         } else {
-            lastGreedyResult = result;
+
+            lastGreedyResult =
+                    result;
         }
 
-        animateResult(result);
+        animateResult(
+                result
+        );
     }
 
-    private void animateResult(SearchResult result) {
+    /*
+     * =========================================================
+     * ANIMAÇÃO
+     * =========================================================
+     */
 
-        if (result.getSteps().isEmpty()) {
-            finishAnimation(result);
+    private void animateResult(
+            SearchResult result
+    ) {
+
+        if (result
+                .getSteps()
+                .isEmpty()) {
+
+            finishAnimation(
+                    result
+            );
+
             return;
         }
 
@@ -275,57 +1309,94 @@ public class MainWindow extends JFrame {
 
         animationTimer =
                 new Timer(
-                        speedSlider.getValue(),
+                        speedSlider
+                                .getValue(),
                         null
                 );
 
-        animationTimer.addActionListener(e -> {
+        animationTimer
+                .addActionListener(
+                        e -> {
 
-            if (index[0] < result.getSteps().size()) {
+                            if (index[0]
+                                    < result
+                                    .getSteps()
+                                    .size()) {
 
-                SearchStep step =
-                        result
-                                .getSteps()
-                                .get(index[0]);
+                                SearchStep step =
+                                        result
+                                                .getSteps()
+                                                .get(
+                                                        index[0]
+                                                );
 
-                gridPanel.showStep(step);
+                                gridPanel
+                                        .showStep(
+                                                step
+                                        );
 
-                statusLabel.setText(
-                        "Explorando... passo "
-                                + (index[0] + 1)
+                                statusLabel
+                                        .setText(
+                                                "Explorando passo "
+                                                        + (
+                                                        index[0]
+                                                                + 1
+                                                )
+                                                        + " / "
+                                                        + result
+                                                        .getSteps()
+                                                        .size()
+                                        );
+
+                                nodesLabel
+                                        .setText(
+                                                "Nós explorados: "
+                                                        + step
+                                                        .getClosed()
+                                                        .size()
+                                        );
+
+                                index[0]++;
+
+                            } else {
+
+                                stopAnimation();
+
+                                gridPanel
+                                        .showPath(
+                                                result
+                                                        .getPath()
+                                        );
+
+                                finishAnimation(
+                                        result
+                                );
+                            }
+                        }
                 );
-
-                nodesLabel.setText(
-                        "Nós explorados: "
-                                + step.getClosed().size()
-                );
-
-                index[0]++;
-
-            } else {
-
-                stopAnimation();
-
-                gridPanel.showPath(
-                        result.getPath()
-                );
-
-                finishAnimation(result);
-            }
-        });
 
         animationTimer.start();
     }
 
-    private void finishAnimation(SearchResult result) {
+    /*
+     * =========================================================
+     * FINALIZAÇÃO
+     * =========================================================
+     */
 
-        gridPanel.setEditingEnabled(true);
+    private void finishAnimation(
+            SearchResult result
+    ) {
+
+        gridPanel
+                .setEditingEnabled(true);
 
         if (result.isFound()) {
 
             statusLabel.setText(
-                    "Caminho encontrado - "
-                            + result.getAlgorithmName()
+                    "Caminho encontrado · "
+                            + result
+                            .getAlgorithmName()
             );
 
         } else {
@@ -337,100 +1408,596 @@ public class MainWindow extends JFrame {
 
         nodesLabel.setText(
                 "Nós explorados: "
-                        + result.getExploredNodes()
+                        + result
+                        .getExploredNodes()
         );
 
-        costLabel.setText(
-                String.format(
-                        "Custo: %.0f",
-                        result.getPathCost()
-                )
-        );
+        if (result.isFound()) {
+
+            costLabel.setText(
+                    String.format(
+                            "Custo: %.0f",
+                            result
+                                    .getPathCost()
+                    )
+            );
+
+        } else {
+
+            costLabel.setText(
+                    "Custo: —"
+            );
+        }
 
         timeLabel.setText(
                 String.format(
                         "Tempo: %.3f ms",
-                        result.getExecutionTimeMs()
+                        result
+                                .getExecutionTimeMs()
                 )
         );
+
+        updateComparisonCard();
     }
 
-    private void showComparison() {
+    /*
+     * =========================================================
+     * COMPARAÇÃO
+     * =========================================================
+     */
 
-        if (grid.getStart() == null
-                || grid.getGoal() == null) {
+    private void compareAlgorithms() {
 
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Defina os pontos A e B primeiro."
-            );
+        stopAnimation();
 
+        if (!validateMap()) {
             return;
         }
 
+        gridPanel
+                .clearSearchVisualization();
+
         /*
-         * Executamos novamente para comparar
-         * exatamente o mapa atual.
+         * Ambos são executados exatamente
+         * sobre o mesmo mapa.
          */
         lastAStarResult =
-                new AStarSearch().search(grid);
+                new AStarSearch()
+                        .search(grid);
 
         lastGreedyResult =
-                new GreedySearch().search(grid);
+                new GreedySearch()
+                        .search(grid);
 
-        String comparison = String.format(
-                """
-                COMPARAÇÃO
+        updateComparisonCard();
 
-                A*
-                Nós explorados: %d
-                Custo: %.0f
-                Tempo: %.3f ms
-                Caminho encontrado: %s
-
-                GREEDY BEST-FIRST
-                Nós explorados: %d
-                Custo: %.0f
-                Tempo: %.3f ms
-                Caminho encontrado: %s
-                """,
-                lastAStarResult.getExploredNodes(),
-                lastAStarResult.getPathCost(),
-                lastAStarResult.getExecutionTimeMs(),
-                lastAStarResult.isFound() ? "Sim" : "Não",
-
-                lastGreedyResult.getExploredNodes(),
-                lastGreedyResult.getPathCost(),
-                lastGreedyResult.getExecutionTimeMs(),
-                lastGreedyResult.isFound() ? "Sim" : "Não"
+        statusLabel.setText(
+                "Comparação atualizada"
         );
+
+        nodesLabel.setText(
+                "Nós explorados: —"
+        );
+
+        costLabel.setText(
+                "Custo: —"
+        );
+
+        timeLabel.setText(
+                "Tempo: —"
+        );
+    }
+
+    private void updateComparisonCard() {
+
+        /*
+         * A*
+         */
+        if (lastAStarResult != null) {
+
+            aStarNodesLabel
+                    .setText(
+                            String.valueOf(
+                                    lastAStarResult
+                                            .getExploredNodes()
+                            )
+                    );
+
+            if (lastAStarResult
+                    .isFound()) {
+
+                aStarCostLabel
+                        .setText(
+                                String.format(
+                                        "%.0f",
+                                        lastAStarResult
+                                                .getPathCost()
+                                )
+                        );
+
+            } else {
+
+                aStarCostLabel
+                        .setText("—");
+            }
+
+            aStarTimeLabel
+                    .setText(
+                            String.format(
+                                    "%.3f ms",
+                                    lastAStarResult
+                                            .getExecutionTimeMs()
+                            )
+                    );
+        }
+
+        /*
+         * Greedy.
+         */
+        if (lastGreedyResult != null) {
+
+            greedyNodesLabel
+                    .setText(
+                            String.valueOf(
+                                    lastGreedyResult
+                                            .getExploredNodes()
+                            )
+                    );
+
+            if (lastGreedyResult
+                    .isFound()) {
+
+                greedyCostLabel
+                        .setText(
+                                String.format(
+                                        "%.0f",
+                                        lastGreedyResult
+                                                .getPathCost()
+                                )
+                        );
+
+            } else {
+
+                greedyCostLabel
+                        .setText("—");
+            }
+
+            greedyTimeLabel
+                    .setText(
+                            String.format(
+                                    "%.3f ms",
+                                    lastGreedyResult
+                                            .getExecutionTimeMs()
+                            )
+                    );
+        }
+    }
+
+    /*
+     * =========================================================
+     * VALIDAÇÃO
+     * =========================================================
+     */
+
+    private boolean validateMap() {
+
+        if (grid.getStart() != null
+                && grid.getGoal() != null) {
+
+            return true;
+        }
 
         JOptionPane.showMessageDialog(
                 this,
-                comparison,
-                "Comparação A* x Greedy",
-                JOptionPane.INFORMATION_MESSAGE
+                "Defina a origem A e o destino B antes de executar.",
+                "Mapa incompleto",
+                JOptionPane.WARNING_MESSAGE
         );
+
+        return false;
     }
+
+    /*
+     * =========================================================
+     * PARAR ANIMAÇÃO
+     * =========================================================
+     */
 
     private void stopAnimation() {
 
         if (animationTimer != null) {
+
             animationTimer.stop();
+
             animationTimer = null;
         }
 
-        gridPanel.setEditingEnabled(true);
+        gridPanel
+                .setEditingEnabled(true);
     }
+
+    /*
+     * =========================================================
+     * RESET DE MÉTRICAS
+     * =========================================================
+     */
 
     private void resetMetrics() {
 
-        statusLabel.setText("Pronto");
-        nodesLabel.setText("Nós explorados: -");
-        costLabel.setText("Custo: -");
-        timeLabel.setText("Tempo: -");
+        statusLabel.setText(
+                "Pronto"
+        );
+
+        nodesLabel.setText(
+                "Nós explorados: —"
+        );
+
+        costLabel.setText(
+                "Custo: —"
+        );
+
+        timeLabel.setText(
+                "Tempo: —"
+        );
 
         lastAStarResult = null;
         lastGreedyResult = null;
+
+        aStarNodesLabel
+                .setText("—");
+
+        aStarCostLabel
+                .setText("—");
+
+        aStarTimeLabel
+                .setText("—");
+
+        greedyNodesLabel
+                .setText("—");
+
+        greedyCostLabel
+                .setText("—");
+
+        greedyTimeLabel
+                .setText("—");
+    }
+
+    /*
+     * =========================================================
+     * COMPONENTES VISUAIS
+     * =========================================================
+     */
+
+    private JButton createPrimaryButton(
+            String text
+    ) {
+
+        JButton button =
+                new JButton(text);
+
+        button.setBackground(
+                ACCENT
+        );
+
+        button.setForeground(
+                Color.WHITE
+        );
+
+        button.setFocusPainted(
+                false
+        );
+
+        button.setOpaque(
+                true
+        );
+
+        button.setContentAreaFilled(
+                true
+        );
+
+        button.setBorderPainted(
+                false
+        );
+
+        button.setCursor(
+                Cursor.getPredefinedCursor(
+                        Cursor.HAND_CURSOR
+                )
+        );
+
+        button.setAlignmentX(
+                Component.LEFT_ALIGNMENT
+        );
+
+        button.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        42
+                )
+        );
+
+        button.setPreferredSize(
+                new Dimension(
+                        250,
+                        42
+                )
+        );
+
+        return button;
+    }
+
+    private JButton createSecondaryButton(
+            String text
+    ) {
+
+        JButton button =
+                new JButton(text);
+
+        button.setBackground(
+                CARD
+        );
+
+        button.setForeground(
+                TEXT
+        );
+
+        button.setFocusPainted(
+                false
+        );
+
+        /*
+         * Estas três configurações são importantes
+         * principalmente no Linux.
+         */
+        button.setOpaque(
+                true
+        );
+
+        button.setContentAreaFilled(
+                true
+        );
+
+        button.setBorderPainted(
+                true
+        );
+
+        button.setBorder(
+                new LineBorder(
+                        BORDER,
+                        1,
+                        true
+                )
+        );
+
+        button.setCursor(
+                Cursor.getPredefinedCursor(
+                        Cursor.HAND_CURSOR
+                )
+        );
+
+        button.setAlignmentX(
+                Component.LEFT_ALIGNMENT
+        );
+
+        button.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        40
+                )
+        );
+
+        button.setPreferredSize(
+                new Dimension(
+                        120,
+                        40
+                )
+        );
+
+        return button;
+    }
+
+    private void styleComboBox(
+            JComboBox<String> comboBox
+    ) {
+
+        comboBox.setBackground(
+                CARD
+        );
+
+        comboBox.setForeground(
+                TEXT
+        );
+
+        comboBox.setOpaque(
+                true
+        );
+
+        comboBox.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        40
+                )
+        );
+
+        comboBox.setPreferredSize(
+                new Dimension(
+                        250,
+                        40
+                )
+        );
+
+        comboBox.setAlignmentX(
+                Component.LEFT_ALIGNMENT
+        );
+    }
+
+    private void configureSlider(
+            JSlider slider
+    ) {
+
+        slider.setOpaque(false);
+
+        slider.setForeground(
+                ACCENT
+        );
+
+        slider.setAlignmentX(
+                Component.LEFT_ALIGNMENT
+        );
+
+        slider.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        40
+                )
+        );
+    }
+
+    private JPanel createCardPanel() {
+
+        JPanel panel =
+                new JPanel();
+
+        panel.setBackground(
+                CARD
+        );
+
+        panel.setBorder(
+                BorderFactory
+                        .createCompoundBorder(
+
+                                new LineBorder(
+                                        BORDER,
+                                        1,
+                                        true
+                                ),
+
+                                new EmptyBorder(
+                                        12,
+                                        12,
+                                        12,
+                                        12
+                                )
+                        )
+        );
+
+        panel.setAlignmentX(
+                Component.LEFT_ALIGNMENT
+        );
+
+        return panel;
+    }
+
+    private void addSectionTitle(
+            JPanel panel,
+            String text
+    ) {
+
+        JLabel label =
+                new JLabel(text);
+
+        label.setForeground(
+                TEXT
+        );
+
+        label.setFont(
+                label.getFont()
+                        .deriveFont(
+                                Font.BOLD,
+                                12f
+                        )
+        );
+
+        label.setAlignmentX(
+                Component.LEFT_ALIGNMENT
+        );
+
+        panel.add(label);
+
+        panel.add(
+                verticalSpace(8)
+        );
+    }
+
+    private void addSmallLabel(
+            JPanel panel,
+            String text
+    ) {
+
+        JLabel label =
+                createMutedLabel(
+                        text
+                );
+
+        label.setAlignmentX(
+                Component.LEFT_ALIGNMENT
+        );
+
+        panel.add(label);
+
+        panel.add(
+                verticalSpace(4)
+        );
+    }
+
+    private JLabel createMetricLabel(
+            String text
+    ) {
+
+        JLabel label =
+                new JLabel(text);
+
+        label.setForeground(
+                TEXT
+        );
+
+        return label;
+    }
+
+    private JLabel createMutedLabel(
+            String text
+    ) {
+
+        JLabel label =
+                new JLabel(text);
+
+        label.setForeground(
+                MUTED
+        );
+
+        return label;
+    }
+
+    private JLabel createBoldLabel(
+            String text
+    ) {
+
+        JLabel label =
+                new JLabel(text);
+
+        label.setForeground(
+                TEXT
+        );
+
+        label.setFont(
+                label.getFont()
+                        .deriveFont(
+                                Font.BOLD
+                        )
+        );
+
+        return label;
+    }
+
+    private Component verticalSpace(
+            int height
+    ) {
+
+        return Box.createRigidArea(
+                new Dimension(
+                        0,
+                        height
+                )
+        );
     }
 }

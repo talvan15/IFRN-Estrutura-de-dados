@@ -2,6 +2,7 @@ package org.example.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class Grid {
 
@@ -13,18 +14,35 @@ public class Grid {
     private Position start;
     private Position goal;
 
-    public Grid(int rows, int columns) {
+    private final Random random =
+            new Random();
+
+    public Grid(
+            int rows,
+            int columns
+    ) {
+
         this.rows = rows;
         this.columns = columns;
-        this.cells = new CellType[rows][columns];
+
+        this.cells =
+                new CellType[rows][columns];
 
         clear();
     }
 
     public void clear() {
-        for (int row = 0; row < rows; row++) {
-            for (int column = 0; column < columns; column++) {
-                cells[row][column] = CellType.EMPTY;
+
+        for (int row = 0;
+             row < rows;
+             row++) {
+
+            for (int column = 0;
+                 column < columns;
+                 column++) {
+
+                cells[row][column] =
+                        CellType.EMPTY;
             }
         }
 
@@ -32,77 +50,220 @@ public class Grid {
         goal = null;
     }
 
-    public void createDefaultMap() {
-        clear();
+    public void clearWalls() {
 
-        setStart(new Position(2, 2));
-        setGoal(new Position(rows - 3, columns - 3));
+        for (int row = 0;
+             row < rows;
+             row++) {
 
-        int middleColumn = columns / 2;
+            for (int column = 0;
+                 column < columns;
+                 column++) {
 
-        for (int row = 2; row < rows - 2; row++) {
-            if (row != rows / 2) {
-                setWall(new Position(row, middleColumn), true);
-            }
-        }
+                if (cells[row][column]
+                        == CellType.WALL) {
 
-        for (int column = 4; column < columns - 4; column++) {
-            if (column != middleColumn + 3) {
-                setWall(new Position(rows / 3, column), true);
+                    cells[row][column] =
+                            CellType.EMPTY;
+                }
             }
         }
     }
 
-    public boolean isValid(Position position) {
+    public void createDefaultMap() {
+
+        clear();
+
+        setStart(
+                new Position(2, 2)
+        );
+
+        setGoal(
+                new Position(
+                        rows - 3,
+                        columns - 3
+                )
+        );
+
+        int middleColumn =
+                columns / 2;
+
+        for (int row = 2;
+             row < rows - 2;
+             row++) {
+
+            if (row != rows / 2) {
+
+                setWall(
+                        new Position(
+                                row,
+                                middleColumn
+                        ),
+                        true
+                );
+            }
+        }
+
+        for (int column = 4;
+             column < columns - 4;
+             column++) {
+
+            if (column
+                    != middleColumn + 3) {
+
+                setWall(
+                        new Position(
+                                rows / 3,
+                                column
+                        ),
+                        true
+                );
+            }
+        }
+    }
+
+    public void generateRandomWalls(
+            double density
+    ) {
+
+        /*
+         * Garante valor entre 0 e 1.
+         */
+        density =
+                Math.max(
+                        0,
+                        Math.min(1, density)
+                );
+
+        clearWalls();
+
+        for (int row = 0;
+             row < rows;
+             row++) {
+
+            for (int column = 0;
+                 column < columns;
+                 column++) {
+
+                Position position =
+                        new Position(
+                                row,
+                                column
+                        );
+
+                if (position.equals(start)
+                        ||
+                        position.equals(goal)) {
+
+                    continue;
+                }
+
+                if (random.nextDouble()
+                        < density) {
+
+                    setWall(
+                            position,
+                            true
+                    );
+                }
+            }
+        }
+    }
+
+    public boolean isValid(
+            Position position
+    ) {
+
         return position.getRow() >= 0
                 && position.getRow() < rows
                 && position.getColumn() >= 0
                 && position.getColumn() < columns;
     }
 
-    public boolean isWalkable(Position position) {
+    public boolean isWalkable(
+            Position position
+    ) {
+
         return isValid(position)
-                && getCell(position) != CellType.WALL;
+                &&
+                getCell(position)
+                        != CellType.WALL;
     }
 
-    public CellType getCell(Position position) {
-        return cells[position.getRow()][position.getColumn()];
+    public CellType getCell(
+            Position position
+    ) {
+
+        return cells
+                [position.getRow()]
+                [position.getColumn()];
     }
 
-    public void setWall(Position position, boolean wall) {
+    public void setWall(
+            Position position,
+            boolean wall
+    ) {
+
         if (!isValid(position)) {
             return;
         }
 
-        if (position.equals(start) || position.equals(goal)) {
+        if (position.equals(start)
+                ||
+                position.equals(goal)) {
+
             return;
         }
 
-        cells[position.getRow()][position.getColumn()] =
-                wall ? CellType.WALL : CellType.EMPTY;
+        cells
+                [position.getRow()]
+                [position.getColumn()]
+                =
+                wall
+                        ? CellType.WALL
+                        : CellType.EMPTY;
     }
 
-    public void toggleWall(Position position) {
+    public void toggleWall(
+            Position position
+    ) {
+
         if (!isValid(position)) {
             return;
         }
 
-        if (position.equals(start) || position.equals(goal)) {
+        if (position.equals(start)
+                ||
+                position.equals(goal)) {
+
             return;
         }
 
-        boolean isWall = getCell(position) == CellType.WALL;
+        boolean isWall =
+                getCell(position)
+                        == CellType.WALL;
 
-        setWall(position, !isWall);
+        setWall(
+                position,
+                !isWall
+        );
     }
 
-    public void setStart(Position position) {
+    public void setStart(
+            Position position
+    ) {
+
         if (!isValid(position)) {
             return;
         }
 
         if (start != null) {
-            cells[start.getRow()][start.getColumn()] = CellType.EMPTY;
+
+            cells
+                    [start.getRow()]
+                    [start.getColumn()]
+                    =
+                    CellType.EMPTY;
         }
 
         if (position.equals(goal)) {
@@ -110,16 +271,29 @@ public class Grid {
         }
 
         start = position;
-        cells[position.getRow()][position.getColumn()] = CellType.START;
+
+        cells
+                [position.getRow()]
+                [position.getColumn()]
+                =
+                CellType.START;
     }
 
-    public void setGoal(Position position) {
+    public void setGoal(
+            Position position
+    ) {
+
         if (!isValid(position)) {
             return;
         }
 
         if (goal != null) {
-            cells[goal.getRow()][goal.getColumn()] = CellType.EMPTY;
+
+            cells
+                    [goal.getRow()]
+                    [goal.getColumn()]
+                    =
+                    CellType.EMPTY;
         }
 
         if (position.equals(start)) {
@@ -127,24 +301,53 @@ public class Grid {
         }
 
         goal = position;
-        cells[position.getRow()][position.getColumn()] = CellType.GOAL;
+
+        cells
+                [position.getRow()]
+                [position.getColumn()]
+                =
+                CellType.GOAL;
     }
 
-    public List<Position> getNeighbors(Position position) {
+    public List<Position> getNeighbors(
+            Position position
+    ) {
 
-        List<Position> neighbors = new ArrayList<>();
+        List<Position> neighbors =
+                new ArrayList<>();
 
-        int row = position.getRow();
-        int column = position.getColumn();
+        int row =
+                position.getRow();
+
+        int column =
+                position.getColumn();
 
         Position[] candidates = {
-                new Position(row - 1, column),
-                new Position(row + 1, column),
-                new Position(row, column - 1),
-                new Position(row, column + 1)
+
+                new Position(
+                        row - 1,
+                        column
+                ),
+
+                new Position(
+                        row + 1,
+                        column
+                ),
+
+                new Position(
+                        row,
+                        column - 1
+                ),
+
+                new Position(
+                        row,
+                        column + 1
+                )
         };
 
-        for (Position candidate : candidates) {
+        for (Position candidate :
+                candidates) {
+
             if (isWalkable(candidate)) {
                 neighbors.add(candidate);
             }
