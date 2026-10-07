@@ -41,24 +41,29 @@ public final class MainFrame extends JFrame {
     public MainFrame() {
         super("PredatorPath — Laboratório de rotas");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(900,620));setSize(1180,820);setLocationRelativeTo(null);
+        setMinimumSize(new Dimension(1080,760));setSize(1440,900);setLocationRelativeTo(null);
         JPanel content=new JPanel(new BorderLayout(0,12));
         content.setBorder(BorderFactory.createEmptyBorder(16,20,12,20));setContentPane(content);
-        JPanel top=new JPanel(new BorderLayout(0,8));top.add(controls,BorderLayout.NORTH);top.add(controls.secondary);content.add(top,BorderLayout.NORTH);
-        grids.add(left);content.add(grids);
-        JPanel bottom=new JPanel(new BorderLayout(0,4));
-        JPanel hint=new JPanel(new BorderLayout());
-        JLabel instruction=new JLabel("Arraste A e B • Clique para criar/remover paredes");instruction.setForeground(Theme.MUTED);
-        hint.add(instruction);controls.status.setForeground(Theme.MUTED);hint.add(controls.status,BorderLayout.EAST);
-        bottom.add(hint,BorderLayout.NORTH);metrics.add(leftMetrics);bottom.add(metrics);content.add(bottom,BorderLayout.SOUTH);
+        grids.add(left);content.add(grids,BorderLayout.CENTER);
+        JPanel sidebar=new JPanel(new BorderLayout(0,22));
+        sidebar.setBackground(Theme.SURFACE);
+        sidebar.setBorder(BorderFactory.createEmptyBorder(20,18,20,18));
+        sidebar.add(controls,BorderLayout.NORTH);
+        JPanel metricBlock=new JPanel(new BorderLayout(0,12));metricBlock.setOpaque(false);
+        JLabel metricsTitle=new JLabel("MÉTRICAS DA SIMULAÇÃO");metricsTitle.setForeground(Theme.MUTED);
+        metricBlock.add(metricsTitle,BorderLayout.NORTH);
+        metrics.setOpaque(false);metrics.add(leftMetrics);metricBlock.add(metrics,BorderLayout.CENTER);
+        sidebar.add(metricBlock,BorderLayout.CENTER);
+        JScrollPane scroll=new JScrollPane(sidebar);
+        scroll.setBorder(BorderFactory.createEmptyBorder());scroll.setPreferredSize(new Dimension(390,0));
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);content.add(scroll,BorderLayout.EAST);
+        JLabel instruction=new JLabel("Arraste o Coiote e o Papa-Léguas • Clique para editar obstáculos • Espaço: executar/pausar");
+        instruction.setForeground(Theme.MUTED);content.add(instruction,BorderLayout.SOUTH);
         loadScenario();
         left.setOnEdit(()->edited(left,right));right.setOnEdit(()->edited(right,left));
         controls.run.addActionListener(e->start());controls.pause.addActionListener(e->togglePause());controls.reset.addActionListener(e->reset());
-        controls.clear.addActionListener(e->{
-            MazeLoader.Scenario s=left.scenario();Grid g=s.grid().copy();
-            for(int y=0;y<g.height();y++)for(int x=0;x<g.width();x++)g.setWall(new Position(x,y),false);
-            setScenario(new MazeLoader.Scenario(g,s.start(),s.goals()));
-        });
+        controls.clear.addActionListener(e->reset());
         controls.mazes.addActionListener(e->loadScenario());
         for(AbstractButton b:new AbstractButton[]{controls.astar,controls.greedy,controls.compare})b.addActionListener(e->{
             grids.removeAll();metrics.removeAll();boolean compare=controls.compare.isSelected();
@@ -73,7 +78,7 @@ public final class MainFrame extends JFrame {
         cancel();target.setScenario(copy(source.scenario()));leftMetrics.reset();rightMetrics.reset();
     }
     private void loadScenario() {
-        try {setScenario(MazeLoader.read(getClass().getResourceAsStream("/mazes/"+new String[]{"u-trap","corridors","islands"}[controls.mazes.getSelectedIndex()]+".txt")));}
+        try {setScenario(MazeLoader.read(getClass().getResourceAsStream("/mazes/"+new String[]{"dashboard","u-trap","corridors","islands"}[controls.mazes.getSelectedIndex()]+".txt")));}
         catch(Exception ex){error(ex.getMessage());}
     }
     private MazeLoader.Scenario copy(MazeLoader.Scenario s) {
@@ -88,7 +93,7 @@ public final class MainFrame extends JFrame {
     }
     private void display() {
         left.setGreedy(!controls.compare.isSelected()&&controls.greedy.isSelected());right.setGreedy(true);
-        leftMetrics.setTitle(controls.greedy.isSelected()?"Gulosa":"A*");
+        leftMetrics.setTitle(!controls.compare.isSelected()&&controls.greedy.isSelected()?"Gulosa":"A*");
     }
     private void start() {
         if(active)return;
@@ -107,6 +112,7 @@ public final class MainFrame extends JFrame {
         boolean nearest=false;
         lanes.add(new Lane(!controls.compare.isSelected()&&controls.greedy.isSelected(),left,leftMetrics));
         if(controls.compare.isSelected())lanes.add(new Lane(true,right,rightMetrics));
+        for(Lane lane:lanes)lane.metrics.setStatus("Buscando…");
         int runEpoch=epoch;
         for(Lane lane:lanes) {
             lane.worker=new SwingWorker<>() {
@@ -219,6 +225,7 @@ public final class MainFrame extends JFrame {
         lastTick=System.nanoTime();
         controls.pause.setText(paused?"Continuar":"Pausar");
         controls.status.setText(paused?"Busca pausada":"Busca em andamento…");
+        for(Lane lane:lanes)if(lane.result==null)lane.metrics.setStatus(paused?"Pausado":"Buscando…");
     }
     private void cancel() {
         epoch++;

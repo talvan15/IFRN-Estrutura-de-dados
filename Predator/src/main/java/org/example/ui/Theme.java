@@ -2,7 +2,11 @@ package org.example.ui;
 import java.awt.*;
 import javax.swing.*;
 public final class Theme {
-    public static final Color BACKGROUND=new Color(0x0d1117),SURFACE=new Color(0x161e2b),CYAN=new Color(0x67c8d5),PURPLE=new Color(0xb8a0e5),GREEN=new Color(0x61f5ad),TEXT=new Color(0xdce6f2),MUTED=new Color(0x93a4bc);
+    public static final Color BACKGROUND=new Color(0x121214),SURFACE=new Color(0x1E1E2E),
+        CARD=new Color(0x252536),GRID=new Color(0x2D2D3A),WALL=new Color(0x454553),
+        BLUE=new Color(0x367BF5),ORANGE=new Color(0xC85A24),YELLOW=new Color(0xFFB800),
+        CYAN=new Color(0x75B4FF),PURPLE=new Color(0xC4AAFF),GREEN=new Color(0x59D49A),
+        TEXT=new Color(0xF0F0F5),MUTED=new Color(0xA0A0B5);
     public static void install() {
         Font font=new Font(Font.SANS_SERIF,Font.PLAIN,13);
         for(String key:new String[] {
@@ -11,7 +15,7 @@ public final class Theme {
         )UIManager.put(key,font);
         UIManager.put("Button.focus",SURFACE);
         UIManager.put("ToggleButton.focus",SURFACE);
-        UIManager.put("ToggleButton.select",new Color(0x286070));
+        UIManager.put("ToggleButton.select",BLUE);
         UIManager.put("Slider.background",BACKGROUND);
         UIManager.put("ScrollBar.background",SURFACE);
         UIManager.put("ScrollBar.thumb",new Color(0x39465b));
