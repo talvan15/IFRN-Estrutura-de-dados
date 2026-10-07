@@ -15,11 +15,6 @@ import java.awt.*;
 
 public class MainWindow extends JFrame {
 
-    /*
-     * =========================================================
-     * CORES
-     * =========================================================
-     */
 
     private static final Color BACKGROUND =
             new Color(11, 18, 32);
@@ -42,21 +37,10 @@ public class MainWindow extends JFrame {
     private static final Color ACCENT =
             new Color(59, 130, 246);
 
-    /*
-     * =========================================================
-     * MODELO
-     * =========================================================
-     */
-
     private final Grid grid;
 
     private final GridPanel gridPanel;
 
-    /*
-     * =========================================================
-     * CONTROLES
-     * =========================================================
-     */
 
     private JComboBox<String> algorithmCombo;
 
@@ -83,9 +67,6 @@ public class MainWindow extends JFrame {
      * Sliders.
      */
     private JSlider speedSlider;
-    private JSlider densitySlider;
-
-    private JLabel densityValueLabel;
 
     /*
      * Botões do editor.
@@ -95,22 +76,12 @@ public class MainWindow extends JFrame {
     private JButton startButton;
     private JButton goalButton;
 
-    /*
-     * =========================================================
-     * EXECUÇÃO
-     * =========================================================
-     */
-
     private Timer animationTimer;
 
     private SearchResult lastAStarResult;
     private SearchResult lastGreedyResult;
 
-    /*
-     * =========================================================
-     * CONSTRUTOR
-     * =========================================================
-     */
+
 
     public MainWindow() {
 
@@ -132,11 +103,6 @@ public class MainWindow extends JFrame {
         configureWindow();
     }
 
-    /*
-     * =========================================================
-     * JANELA PRINCIPAL
-     * =========================================================
-     */
 
     private void configureWindow() {
 
@@ -229,7 +195,7 @@ public class MainWindow extends JFrame {
 
         JLabel title =
                 new JLabel(
-                        "PATHFINDING LAB"
+                        "ROTAS"
                 );
 
         title.setForeground(TEXT);
@@ -660,81 +626,6 @@ public class MainWindow extends JFrame {
 
         container.add(
                 verticalSpace(14)
-        );
-
-        addSmallLabel(
-                container,
-                "Densidade dos obstáculos"
-        );
-
-        JPanel densityPanel =
-                new JPanel(
-                        new BorderLayout(
-                                8,
-                                0
-                        )
-                );
-
-        densityPanel.setOpaque(false);
-
-        densityPanel.setMaximumSize(
-                new Dimension(
-                        Integer.MAX_VALUE,
-                        45
-                )
-        );
-
-        densitySlider =
-                new JSlider(
-                        5,
-                        50,
-                        25
-                );
-
-        configureSlider(
-                densitySlider
-        );
-
-        densityValueLabel =
-                new JLabel("25%");
-
-        densityValueLabel
-                .setForeground(TEXT);
-
-        densityValueLabel
-                .setPreferredSize(
-                        new Dimension(
-                                40,
-                                30
-                        )
-                );
-
-        densitySlider
-                .addChangeListener(
-                        e -> densityValueLabel
-                                .setText(
-                                        densitySlider
-                                                .getValue()
-                                                + "%"
-                                )
-                );
-
-        densityPanel.add(
-                densitySlider,
-                BorderLayout.CENTER
-        );
-
-        densityPanel.add(
-                densityValueLabel,
-                BorderLayout.EAST
-        );
-
-        container.add(
-                densityPanel
-        );
-
-        container.add(
-                verticalSpace(8)
         );
 
         JButton randomButton =
@@ -1211,14 +1102,7 @@ public class MainWindow extends JFrame {
             );
         }
 
-        double density =
-                densitySlider
-                        .getValue()
-                        / 100.0;
-
-        grid.generateRandomWalls(
-                density
-        );
+        grid.generateRandomWalls(0.25);
 
         gridPanel
                 .clearSearchVisualization();
